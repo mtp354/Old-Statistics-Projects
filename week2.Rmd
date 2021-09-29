@@ -1,0 +1,115 @@
+---
+title: "Week2 Benchmark"
+author: "Matt Prest"
+date: "February 26, 2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+library(tidyverse)
+library(caret)
+library(klaR)
+dd <- read.csv("C:\\Users\\Matt\\Desktop\\Stats Stuff\\Applied Regression\\TMBD\\train.csv", 
+               stringsAsFactors = FALSE)
+
+library(pls)
+
+
+# dd$genres[1:5]
+# dd$belongs_to_collection[1:5]
+# dd$title[1:5]
+# dd$budget[1:5]
+# dd$genres[1:5]
+# dd$homepage[1:5]
+# dd$imdb_id[1:5]
+# dd$original_language[1:5]
+# dd$original_title[1:5]
+# dd$overview[1:5]
+# dd$popularity[1:5]
+# dd$poster_path[1:5]
+# dd$production_companies[1:5]
+# dd$production_countries[1:5]
+# dd$release_date[1:5]
+# dd$runtime[1:5]
+# dd$spoken_languages[1:5]
+# dd$status[1:5]
+# dd$tagline[1:5]
+# dd$title[1:5]
+# dd$Keywords[1:5]
+# dd$cast[1:5]
+
+
+str_extract_all(dd$genres[2], "[0-9]+")
+unique(unlist(str_extract_all(dd$genres, "[0-9]+")))
+unique(unlist(str_extract_all(dd$genres, "[A-Z][a-z]+")))
+genres <- unique(unlist(str_extract_all(dd$genres, "[A-Z][a-z]+[\\s]*[A-Z]*[a-z]*")))
+genres <- sort(genres)
+genres
+genres[17] <- "Science"
+
+for(x in genres) { 
+  eval(parse(text = paste0("dd$", x, " <- str_detect(dd$genres, \"", x, "\")")))
+}
+
+dd$genres <- NULL
+summary(dd)
+
+filter(dd, Foreign) %>% pull(title)
+
+tt <- read.csv("C:\\Users\\Matt\\Desktop\\Stats Stuff\\Applied Regression\\TMBD\\test.csv", stringsAsFactors = FALSE)
+tt$genres
+genres_tt <- unique(unlist(str_extract_all(tt$genres, "[A-Z][a-z]+[\\s]*[A-Z]*[a-z]*")))
+genres
+genres_tt <- sort(genres_tt)
+genres_tt[16] <- "Science"
+setdiff(genres_tt, genres)
+
+for(x in genres_tt) { 
+  eval(parse(text = paste0("tt$", x, " <- str_detect(tt$genres, \"", x, "\")")))
+}
+
+# summary(tt)
+tt$genres <- NULL
+
+
+dd <- dd %>%
+  select(revenue, budget, popularity) %>%
+  mutate(budget = ifelse(budget <= 1000, budget + 1000, budget)) %>%
+  mutate(budget = log(budget)) %>%
+  mutate(revenue = log(revenue))
+
+
+tt <- tt %>%
+  mutate(budget = ifelse(budget == 0, 1000, budget)) %>%
+  mutate(budget = log(budget))
+
+
+
+
+
+train_control <- trainControl(method="cv", number = 10)
+# train the model
+model <- train(revenue~ budget + popularity, data=dd, trControl=train_control, method="rpart")
+# summarize results
+print(model)
+
+
+mod1 <- lm(revenue ~ budget + popularity, data = dd)
+pred1 <- predict(mod1, newdata = tt)
+summary(mod1)
+
+pred1 <- exp(pred1)
+
+submit <- data.frame(id=3001:7398, revenue = pred1)
+write.csv(submit, "submissionTMBD.csv", row.names = FALSE)
+
+
+
+
+```
+
